@@ -135,14 +135,14 @@ def ifaceNo(dev):
 
 def qemuArchNetworkConfig(i, arch, n):
     if not n:
-        if arch == "arm":
+        if arch == "arm" or arch == "ppc":
             return "-device virtio-net-device,netdev=net%(I)i -netdev socket,id=net%(I)i,listen=:200%(I)i" % {'I': i}
         else:
             return "-net nic,vlan=%(VLAN)i -net socket,vlan=%(VLAN)i,listen=:200%(I)i" % {'I': i, 'VLAN' : i}
     else:
         (ip, dev, vlan, mac) = n
          # newer kernels use virtio only
-        if arch == "arm":
+        if arch == "arm" or arch == "ppc":
             return "-device virtio-net-device,netdev=net%(I)i -netdev tap,id=net%(I)i,ifname=${TAPDEV_%(I)i},script=no" % {'I': i}
         else:
             vlan_id = vlan if vlan else i
@@ -277,6 +277,11 @@ def qemuCmd(iid, network, arch, endianness):
             raise Exception("armeb currently not supported")
         else:
             raise Exception("You didn't specify a valid endianness")
+    elif arch =="ppc":
+        qemuEnvVars = ""
+        qemuDisk = "-drive if=none,file=${IMAGE},format=raw,id=rootfs -device virtio-blk-device,drive=rootfs"
+        if endianness != "eb" and endianness != "el":
+            raise Exception("You didn't specify a valid endianness")
     else:
         raise Exception("Unsupported architecture")
 
@@ -353,6 +358,8 @@ def archEnd(value):
         arch = "mips"
     elif tmp.startswith("arm"):
         arch = "arm"
+    elif tmp.startswith("ppc"):
+        arch = "ppc"
     if tmp.endswith("el"):
         end = "el"
     elif tmp.endswith("eb"):
